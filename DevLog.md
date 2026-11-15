@@ -42,3 +42,21 @@ I ran the program using java Project2. All three tellers printed their ready mes
 What I learned: Semaphores can control access to shared resources. The acquire() method waits for a permit, and release() returns it so another thread can use the resource.
 
 Next: connect customers to available tellers and add synchronization so customers wait for their transactions to finish before leaving.
+
+11-15-2026 1:28 PM
+
+The bank opening and door semaphores are working, so now I'm starting on communication between customers and tellers. Right now, customers can enter the bank and get in line, but they are not assigned to a teller yet.
+
+I plan to use semaphores to make customers wait for an available teller. Each teller should serve only one customer at a time. I also need to make sure customers wait until their transaction is finished before leaving.
+
+One thing I'm concerned about is making sure two customers don't get assigned to the same teller at the same time. I'll test the synchronization to check that the threads communicate correctly.
+
+11-15-2026 1:50 PM
+
+I added a shared customer queue and semaphores to connect the customer and teller threads. Customers now wait in line until a teller is available. Each teller takes one customer from the queue, and the customer introduces themselves before the teller continues.
+
+I compiled the program using javac Project2.java and ran it using java Project2. The program showed customers entering the bank, waiting in line, and being assigned to tellers. Each customer introduced themselves to a teller and waited until the teller finished before leaving the bank. The program appeared to run correctly, and I did not notice any errors.
+
+What I learned: Semaphores can be used to make two threads wait for each other. The shared queue allows customers to wait until a teller is available, and each teller can serve one customer at a time.
+
+Next: add deposit and withdrawal transactions, along with the manager and safe semaphores.
