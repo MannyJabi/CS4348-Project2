@@ -18,6 +18,23 @@ public class Project2 {
         }
     }
 
+    // Represents a bank customer
+    static class Customer extends Thread {
+
+        private final int customerId;
+
+        // Assign an ID to each customer
+        public Customer(int id) {
+            customerId = id;
+        }
+
+        // Run the customer thread
+        @Override
+        public void run() {
+            System.out.println("Customer " + customerId + " []: arrives at the bank");
+        }
+    }
+
     public static void main(String[] args) {
 
         // Start the bank simulation
@@ -32,6 +49,25 @@ public class Project2 {
             tellers[i].start();
         }
 
+        // Create 50 customer threads
+        Customer[] customers = new Customer[50];
+
+        // Start each customer
+        for (int i = 0; i < 50; i++) {
+            customers[i] = new Customer(i);
+            customers[i].start();
+        }
+
+        // Wait for all customers to finish
+        for (int i = 0; i < 50; i++) {
+            try {
+                customers[i].join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+
         // Wait for all tellers to finish
         for (int i = 0; i < 3; i++) {
             try {
@@ -41,5 +77,8 @@ public class Project2 {
                 return;
             }
         }
+
+        // End the bank simulation
+        System.out.println("Bank simulation finished.");
     }
 }
