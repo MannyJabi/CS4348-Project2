@@ -68,3 +68,23 @@ The customer and teller synchronization is now working. I tested the program and
 Now I plan to add deposit and withdrawal transactions. Each customer will randomly choose a transaction, and the teller will process it. I also need to use semaphores to control access to the manager and safe.
 
 One thing I want to check is that only one teller can use the manager at a time and no more than two tellers can enter the safe together.
+
+11-15-2026 2:14PM
+
+I compiled and ran the updated program and saved the output to output.txt. I used grep commands to check the results. All 50 customers left the bank successfully. There were 19 deposit transactions and 31 withdrawal transactions. The manager gave permission 31 times, matching the number of withdrawals, and the safe was accessed 50 times.
+
+The program finished successfully, and all three tellers finished for the day. I did not notice any errors during this test.
+
+What I learned: Semaphores can control access to shared resources while different threads process transactions. I also learned how to save program output to a text file and use grep to check the results.
+
+Next: test the program multiple times and verify that the manager and safe limits are followed correctly.
+
+11-15-2026 2:36 PM
+
+I ran the bank simulation five times to check if the program worked consistently. All five tests completed successfully, with 50 customers leaving the bank each time. The number of deposits and withdrawals changed between runs, but the total was always 50.
+
+I also tested the semaphore limits using a Python script. The maximum number of tellers using the manager was 1, and the maximum number using the safe was 2. Both final counts were 0, and no errors were reported.
+
+What I learned: Running a multithreaded program multiple times is important because the order of execution can change. I also learned how to check the output to verify that semaphores are controlling shared resources correctly.
+
+Next: review the project files, check Git history, and prepare the final ZIP file for submission.
