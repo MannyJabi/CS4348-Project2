@@ -6,13 +6,13 @@ import java.util.concurrent.ThreadLocalRandom;
 
 public class Project2 {
 
-    // Only two customers can use the door at once
+    // Shared bank resources
     static Semaphore door = new Semaphore(2);
-
-    // Wait until all three tellers are ready
     static Semaphore bankOpen = new Semaphore(0);
+    static Semaphore manager = new Semaphore(1);
+    static Semaphore safe = new Semaphore(2);
 
-    // Line of customers waiting for a teller
+    // Customers waiting for a teller
     static BlockingQueue<Customer> customerLine = new LinkedBlockingQueue<>();
 
     // Represents a bank teller
@@ -27,58 +27,121 @@ public class Project2 {
         @Override
         public void run() {
             System.out.println("Teller " + tellerId + " []: ready to serve");
-
-            // Signal that the teller is ready
             bankOpen.release();
 
-            // Serve customers until the bank closes
-            while (true) {
-                try {
-                    System.out.println("Teller " + tellerId + " []: waiting for a customer");
+            try {
+                while (true) {
+                    System.out.println("Teller " + tellerId
+                            + " []: waiting for a customer");
 
-                    // Wait for the next customer
+                    // Get the next customer
                     Customer customer = customerLine.take();
 
-                    // Stop when there are no more customers
+                    // Stop when the bank closes
                     if (customer.customerId == -1) {
                         break;
                     }
 
-                    // Assign this teller to the customer
                     customer.tellerId = tellerId;
 
                     System.out.println("Teller " + tellerId
                             + " [Customer " + customer.customerId
                             + "]: serving a customer");
 
-                    // Tell the customer which teller is available
+                    // Call the customer
                     customer.tellerReady.release();
 
-                    // Wait for the customer to introduce themselves
+                    // Wait for the introduction
                     customer.customerIntroduced.acquire();
 
                     System.out.println("Teller " + tellerId
                             + " [Customer " + customer.customerId
                             + "]: asks for transaction");
 
-                    // Transaction processing will be added later
+                    // Ask the customer for the transaction
+                    customer.transactionRequested.release();
+
+                    // Wait for the customer's answer
+                    customer.transactionGiven.acquire();
+
+                    String type = customer.withdrawal
+                            ? "withdrawal" : "deposit";
+
                     System.out.println("Teller " + tellerId
                             + " [Customer " + customer.customerId
-                            + "]: finished serving customer");
+                            + "]: handling " + type + " transaction");
 
-                    // Tell the customer that service is finished
+                    // Withdrawals need manager permission
+                    if (customer.withdrawal) {
+                        System.out.println("Teller " + tellerId
+                                + " [Customer " + customer.customerId
+                                + "]: going to the manager");
+
+                        manager.acquire();
+
+                        try {
+                            System.out.println("Teller " + tellerId
+                                    + " [Customer " + customer.customerId
+                                    + "]: getting manager's permission");
+
+                            Thread.sleep(
+                                    ThreadLocalRandom.current().nextInt(5, 31)
+                            );
+
+                            System.out.println("Teller " + tellerId
+                                    + " [Customer " + customer.customerId
+                                    + "]: got manager's permission");
+
+                        } finally {
+                            manager.release();
+                        }
+                    }
+
+                    // All transactions use the safe
+                    System.out.println("Teller " + tellerId
+                            + " [Customer " + customer.customerId
+                            + "]: going to safe");
+
+                    safe.acquire();
+
+                    try {
+                        System.out.println("Teller " + tellerId
+                                + " [Customer " + customer.customerId
+                                + "]: enter safe");
+
+                        Thread.sleep(
+                                ThreadLocalRandom.current().nextInt(10, 51)
+                        );
+
+                        System.out.println("Teller " + tellerId
+                                + " [Customer " + customer.customerId
+                                + "]: leaving safe");
+
+                    } finally {
+                        safe.release();
+                    }
+
+                    System.out.println("Teller " + tellerId
+                            + " [Customer " + customer.customerId
+                            + "]: finishes " + type + " transaction");
+
+                    System.out.println("Teller " + tellerId
+                            + " [Customer " + customer.customerId
+                            + "]: wait for customer to leave");
+
+                    // Let the customer leave
                     customer.transactionFinished.release();
 
                     // Wait for the customer to leave
                     customer.customerLeft.acquire();
-
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
                 }
-            }
 
-            System.out.println("Teller " + tellerId + " []: finished for the day");
+                System.out.println("Teller " + tellerId
+                        + " []: finished for the day");
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
@@ -87,10 +150,13 @@ public class Project2 {
 
         private final int customerId;
         private int tellerId;
+        private boolean withdrawal;
 
-        // Semaphores for communication with the teller
+        // Customer and teller communication
         Semaphore tellerReady = new Semaphore(0);
         Semaphore customerIntroduced = new Semaphore(0);
+        Semaphore transactionRequested = new Semaphore(0);
+        Semaphore transactionGiven = new Semaphore(0);
         Semaphore transactionFinished = new Semaphore(0);
         Semaphore customerLeft = new Semaphore(0);
 
@@ -101,23 +167,30 @@ public class Project2 {
         @Override
         public void run() {
             try {
-                // Wait a random amount of time
+                // Choose a random transaction
+                withdrawal = ThreadLocalRandom.current().nextBoolean();
+
                 int delay = ThreadLocalRandom.current().nextInt(101);
 
-                System.out.println("Customer " + customerId + " []: going to bank");
+                System.out.println("Customer " + customerId
+                        + " []: going to bank");
+
                 Thread.sleep(delay);
 
-                // Enter through the door
+                // Enter the bank
                 door.acquire();
+
                 try {
-                    System.out.println("Customer " + customerId + " []: entering bank");
+                    System.out.println("Customer " + customerId
+                            + " []: entering bank");
                 } finally {
                     door.release();
                 }
 
-                System.out.println("Customer " + customerId + " []: getting in line");
+                System.out.println("Customer " + customerId
+                        + " []: getting in line");
 
-                // Join the customer line
+                // Join the line
                 customerLine.put(this);
 
                 // Wait for an available teller
@@ -127,31 +200,45 @@ public class Project2 {
                         + " [Teller " + tellerId
                         + "]: selects teller");
 
-                // Introduce the customer to the teller
                 System.out.println("Customer " + customerId
                         + " [Teller " + tellerId
                         + "]: introduces itself");
 
                 customerIntroduced.release();
 
-                // Wait for the teller to finish
+                // Wait for the teller to ask
+                transactionRequested.acquire();
+
+                String type = withdrawal ? "withdrawal" : "deposit";
+
+                System.out.println("Customer " + customerId
+                        + " [Teller " + tellerId
+                        + "]: asks for " + type + " transaction");
+
+                // Give the transaction to the teller
+                transactionGiven.release();
+
+                // Wait for the transaction to finish
                 transactionFinished.acquire();
 
                 System.out.println("Customer " + customerId
                         + " [Teller " + tellerId
                         + "]: leaves teller");
 
-                // Leave through the door
-                System.out.println("Customer " + customerId + " []: goes to door");
+                System.out.println("Customer " + customerId
+                        + " []: goes to door");
 
+                // Leave through the door
                 door.acquire();
+
                 try {
-                    System.out.println("Customer " + customerId + " []: leaves the bank");
+                    System.out.println("Customer " + customerId
+                            + " []: leaves the bank");
                 } finally {
                     door.release();
                 }
 
-                // Tell the teller the customer has left
+                // Tell the teller the customer left
                 customerLeft.release();
 
             } catch (InterruptedException e) {
@@ -164,7 +251,7 @@ public class Project2 {
 
         System.out.println("Bank simulation starting...");
 
-        // Create and start three tellers
+        // Start three tellers
         Teller[] tellers = new Teller[3];
 
         for (int i = 0; i < 3; i++) {
@@ -173,12 +260,12 @@ public class Project2 {
         }
 
         try {
-            // Wait for all three tellers to be ready
+            // Wait until all tellers are ready
             bankOpen.acquire(3);
 
             System.out.println("Bank is now open.");
 
-            // Create and start 50 customers
+            // Start 50 customers
             Customer[] customers = new Customer[50];
 
             for (int i = 0; i < 50; i++) {
@@ -186,17 +273,17 @@ public class Project2 {
                 customers[i].start();
             }
 
-            // Wait for all customers to finish
+            // Wait for all customers to leave
             for (int i = 0; i < 50; i++) {
                 customers[i].join();
             }
 
-            // Send stop signals to the tellers
+            // Stop all three tellers
             for (int i = 0; i < 3; i++) {
                 customerLine.put(new Customer(-1));
             }
 
-            // Wait for all tellers to finish
+            // Wait for tellers to finish
             for (int i = 0; i < 3; i++) {
                 tellers[i].join();
             }

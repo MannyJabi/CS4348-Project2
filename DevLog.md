@@ -60,3 +60,11 @@ I compiled the program using javac Project2.java and ran it using java Project2.
 What I learned: Semaphores can be used to make two threads wait for each other. The shared queue allows customers to wait until a teller is available, and each teller can serve one customer at a time.
 
 Next: add deposit and withdrawal transactions, along with the manager and safe semaphores.
+
+11-15-2026 1:52 PM
+
+The customer and teller synchronization is now working. I tested the program and confirmed that all 50 customers left the bank. I also committed the changes to Git.
+
+Now I plan to add deposit and withdrawal transactions. Each customer will randomly choose a transaction, and the teller will process it. I also need to use semaphores to control access to the manager and safe.
+
+One thing I want to check is that only one teller can use the manager at a time and no more than two tellers can enter the safe together.
