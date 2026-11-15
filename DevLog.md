@@ -31,3 +31,14 @@ I compiled the program using javac Project2.java and ran it with java Project2. 
 What I learned: Java threads do not always execute in the order they are started. Each customer runs separately, and join() makes sure the main program waits for all the threads to finish.
 
 Next: add semaphores to control how many customers can enter the bank and access shared resources.
+
+
+11-15-2026 1:25PM
+
+I added semaphores to control when the bank opens and how customers enter. I used a semaphore with two permits for the door so only two customers can use it at the same time. I also added another semaphore to make sure all three tellers are ready before the bank opens.
+
+I ran the program using java Project2. All three tellers printed their ready messages before "Bank is now open." appeared. All 50 customers entered the bank and got in line. The customer messages appeared in different orders, and the program finished without errors.
+
+What I learned: Semaphores can control access to shared resources. The acquire() method waits for a permit, and release() returns it so another thread can use the resource.
+
+Next: connect customers to available tellers and add synchronization so customers wait for their transactions to finish before leaving.

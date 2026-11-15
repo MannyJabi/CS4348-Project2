@@ -1,5 +1,14 @@
 
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.ThreadLocalRandom;
+
 public class Project2 {
+
+    // Only two customers can use the door at once
+    static Semaphore door = new Semaphore(2);
+
+    // Wait until all three tellers are ready
+    static Semaphore bankOpen = new Semaphore(0);
 
     // Represents a bank teller
     static class Teller extends Thread {
@@ -11,10 +20,12 @@ public class Project2 {
             tellerId = id;
         }
 
-        // Run the teller thread
         @Override
         public void run() {
             System.out.println("Teller " + tellerId + " []: ready to serve");
+
+            // Signal that this teller is ready
+            bankOpen.release();
         }
     }
 
@@ -28,57 +39,70 @@ public class Project2 {
             customerId = id;
         }
 
-        // Run the customer thread
         @Override
         public void run() {
-            System.out.println("Customer " + customerId + " []: arrives at the bank");
+            try {
+                // Wait a random amount of time
+                int delay = ThreadLocalRandom.current().nextInt(101);
+                System.out.println("Customer " + customerId + " []: going to bank");
+                Thread.sleep(delay);
+
+                // Wait for space at the door
+                door.acquire();
+                try {
+                    System.out.println("Customer " + customerId + " []: entering bank");
+                } finally {
+                    // Free the door for another customer
+                    door.release();
+                }
+
+                System.out.println("Customer " + customerId + " []: getting in line");
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 
     public static void main(String[] args) {
 
-        // Start the bank simulation
         System.out.println("Bank simulation starting...");
 
-        // Create three teller threads
+        // Create and start three tellers
         Teller[] tellers = new Teller[3];
 
-        // Start each teller
         for (int i = 0; i < 3; i++) {
             tellers[i] = new Teller(i);
             tellers[i].start();
         }
 
-        // Create 50 customer threads
-        Customer[] customers = new Customer[50];
+        try {
+            // Wait for all three tellers
+            bankOpen.acquire(3);
+            System.out.println("Bank is now open.");
 
-        // Start each customer
-        for (int i = 0; i < 50; i++) {
-            customers[i] = new Customer(i);
-            customers[i].start();
-        }
+            // Create and start 50 customers
+            Customer[] customers = new Customer[50];
 
-        // Wait for all customers to finish
-        for (int i = 0; i < 50; i++) {
-            try {
+            for (int i = 0; i < 50; i++) {
+                customers[i] = new Customer(i);
+                customers[i].start();
+            }
+
+            // Wait for all customers
+            for (int i = 0; i < 50; i++) {
                 customers[i].join();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
             }
-        }
 
-        // Wait for all tellers to finish
-        for (int i = 0; i < 3; i++) {
-            try {
+            // Wait for all tellers
+            for (int i = 0; i < 3; i++) {
                 tellers[i].join();
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
             }
-        }
 
-        // End the bank simulation
-        System.out.println("Bank simulation finished.");
+            System.out.println("Bank simulation finished.");
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
